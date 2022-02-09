@@ -1,6 +1,6 @@
 # pino
 
-Stack files into a container image.
+Stack files into a container image (without a running Docker daemon, too)
 
 ## Standing on the shoulders of giants
 
@@ -29,6 +29,16 @@ The same, but directly to the local Docker daemon:
 ```
 python3 pino.py --base-image python:3.10 --dest-image appified-python:latest --add ./tests/app:/app
 ```
+
+### Look ma, no Docker
+
+How about without Docker running at all?! This grabs Python 3.10 from docker.io, applies our changes and saves a tarball.
+
+```
+python3 pino.py --base-image docker://docker.io/python:3.10 --dest-image appified-python.tar --add ./tests/app:/app
+```
+
+Since pino uses Skopeo under the hood, you can follow [Skopeo's authentication](https://github.com/containers/skopeo#authenticating-to-a-registry) instructions, then directly `--dest-image docker://myregistry.local:5000/` too.
 
 ## Caveats
 
