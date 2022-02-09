@@ -2,14 +2,15 @@ import argparse
 import datetime
 import logging
 import os
+import platform
 import shlex
 import shutil
 import subprocess
 import tempfile
 from typing import List, Dict, Optional
 
-skopeo = os.environ.get("SKOPEO") or shutil.which("skopeo")
-umoci = os.environ.get("UMOCI") or shutil.which("umoci")
+skopeo_bin = os.environ.get("SKOPEO") or shutil.which("skopeo")
+umoci_bin = os.environ.get("UMOCI") or shutil.which("umoci")
 log = logging.getLogger(__name__)
 
 
@@ -26,10 +27,13 @@ def do_pino(
     dest_tag: Optional[str] = None,
     update_image_mtime: bool = True,
 ) -> None:
+    skopeo_args = [skopeo_bin]
+    if platform.system() == "Darwin":  # There are no macOS containers, so assume user wants Linux
+        skopeo_args.append("--override-os=linux")
     with tempfile.TemporaryDirectory(prefix="pino") as tmpdir:
         image_dir = os.path.join(tmpdir, "image")
         oci_ref = f"{image_dir}:1"
-        check_call_verbose([skopeo, "copy", base_image_ref, f"oci:{oci_ref}"])
+        check_call_verbose(skopeo_args + ["copy", base_image_ref, f"oci:{oci_ref}"])
         overlay_dir = os.path.join(tmpdir, "overlay")
         for dst_part_path, src_path in file_map.items():
             dst_path = os.path.join(overlay_dir, dst_part_path)
@@ -39,16 +43,16 @@ def do_pino(
             shutil.copyfile(src_path, dst_path)
         # TODO: should support uid map here
         check_call_verbose(
-            [umoci, "insert", "--image", oci_ref, overlay_dir, dir_prefix]
+            [umoci_bin, "insert", "--image", oci_ref, overlay_dir, dir_prefix]
         )
         if update_image_mtime:
             timestamp = (
                 f"{datetime.datetime.utcnow().isoformat(timespec='seconds')}+00:00"
             )
             check_call_verbose(
-                [umoci, "config", "--image", oci_ref, f"--created={timestamp}"]
+                [umoci_bin, "config", "--image", oci_ref, f"--created={timestamp}"]
             )
-        skopeo_cmd = [skopeo, "copy", f"oci:{oci_ref}", dest_image_ref]
+        skopeo_cmd = skopeo_args + ["copy", f"oci:{oci_ref}", dest_image_ref]
         if dest_tag:
             skopeo_cmd.extend(["--additional-tag", dest_tag])
         check_call_verbose(skopeo_cmd)
@@ -120,10 +124,10 @@ def main():
 
     file_map = build_file_map(args.files)
 
-    if not umoci:
+    if not umoci_bin:
         raise RuntimeError("Missing umoci tool (set UMOCI if not on PATH)")
 
-    if not skopeo:
+    if not skopeo_bin:
         raise RuntimeError("Missing skopeo tool (set SKOPEO if not on PATH)")
 
     if not file_map:
