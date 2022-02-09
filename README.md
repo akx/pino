@@ -21,13 +21,13 @@ This project is really just a thin wrapper around
 - Save the result as `appified-python.tar` with an embedded tag `appified-python:latest` (which can be `docker load`ed):
 
 ```
-python3 pino.py --base-image python:3.10 --dest-image ./appified-python.tar --add ./tests/app:/app --dest-tag appified-python:latest
+python3 -m pino --base-image python:3.10 --dest-image ./appified-python.tar --add ./tests/app:/app --dest-tag appified-python:latest
 ```
 
 The same, but directly to the local Docker daemon:
 
 ```
-python3 pino.py --base-image python:3.10 --dest-image appified-python:latest --add ./tests/app:/app
+python3 -m pino --base-image python:3.10 --dest-image appified-python:latest --add ./tests/app:/app
 ```
 
 ### Look ma, no Docker
@@ -35,7 +35,7 @@ python3 pino.py --base-image python:3.10 --dest-image appified-python:latest --a
 How about without Docker running at all?! This grabs Python 3.10 from docker.io, applies our changes and saves a tarball.
 
 ```
-python3 pino.py --base-image docker://docker.io/python:3.10 --dest-image appified-python.tar --add ./tests/app:/app
+python3 -m pino --base-image docker://docker.io/python:3.10 --dest-image appified-python.tar --add ./tests/app:/app
 ```
 
 Since pino uses Skopeo under the hood, you can follow [Skopeo's authentication](https://github.com/containers/skopeo#authenticating-to-a-registry) instructions, then directly `--dest-image docker://myregistry.local:5000/` too.
